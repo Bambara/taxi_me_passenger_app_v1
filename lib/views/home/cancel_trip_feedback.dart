@@ -1,0 +1,194 @@
+import 'package:flutter/material.dart';
+
+import '../../models/CancelTrip.dart';
+import '../../user_dashboard/user_dashboard_page.dart';
+import '../../utils/api_client.dart';
+import '../../utils/custom_text_style.dart';
+import '../../utils/settings.dart';
+
+class CancelTripFeedback extends StatefulWidget {
+  String tripId;
+  String driverId;
+
+  CancelTripFeedback({required this.tripId, required this.driverId});
+
+  @override
+  _CancelTripFeedbackState createState() => _CancelTripFeedbackState();
+}
+
+class _CancelTripFeedbackState extends State<CancelTripFeedback> {
+  List<dynamic> listCancelReason = [];
+
+  int selectedPosition = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    createListOfReason();
+  }
+
+  createListOfReason() {
+    listCancelReason.add(createCancelReason("Change my mind", false));
+    listCancelReason.add(createCancelReason("Driver is late", false));
+    listCancelReason.add(createCancelReason("I got lift", false));
+    listCancelReason.add(createCancelReason("Driver too far", false));
+    listCancelReason.add(createCancelReason("Driver ask to cancel", false));
+    listCancelReason.add(createCancelReason("Other", false));
+  }
+
+  createCancelReason(String title, bool isSelected) {
+    return new CancelTrip(title, isSelected);
+  }
+
+  cancelTrip() async {
+    String passengerID = await Settings.getUserID();
+
+    var data = {'tripId': widget.tripId, 'cancelReason': listCancelReason[selectedPosition].title, 'passengerId': passengerID, 'driverId': widget.driverId};
+
+    final response = await ApiClient().postData(data, '/trip/cancelbypassenger');
+
+    if (response.statusCode == 200) {
+      print(response.body);
+
+      Settings.setOnTrip(false);
+
+      Navigator.of(context).push(new MaterialPageRoute(builder: (context) => UserDashboardPage()));
+    } else {
+      print(response.body);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: Container(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Card(
+                elevation: 4,
+                margin: EdgeInsets.all(0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(16), bottomLeft: Radius.circular(16))),
+                child: Container(
+                    decoration: BoxDecoration(borderRadius: BorderRadius.only(bottomRight: Radius.circular(16), bottomLeft: Radius.circular(16)), boxShadow: [
+                      BoxShadow(color: Colors.grey.shade50, blurRadius: 10, offset: Offset(0, 1)),
+                    ]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          height: 24,
+                        ),
+                        Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                              image: DecorationImage(
+                            image: AssetImage("assets/icons/taxime_logo_white.png"),
+                          )),
+                        ),
+                        SizedBox(
+                          height: 24,
+                        ),
+                        Container(
+                          child: Text(
+                            "Cancel Request",
+                            style: CustomTextStyle.boldTextStyle.copyWith(fontSize: 16),
+                          ),
+                          margin: EdgeInsets.only(left: 20),
+                        ),
+                        SizedBox(
+                          height: 16,
+                        ),
+                        ListView.builder(
+                          key: Key("ListMenu"),
+                          shrinkWrap: true,
+                          primary: true,
+                          itemBuilder: (context, position) {
+                            return createMenuListItemWidget(position);
+                          },
+                          itemCount: listCancelReason.length,
+                        ),
+                        SizedBox(
+                          height: 8,
+                        ),
+                      ],
+                    )),
+              ),
+              Container(
+                alignment: Alignment.bottomCenter,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      flex: 50,
+                      child: Container(
+                        margin: EdgeInsets.only(left: 16),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            cancelTrip();
+                          },
+                          style: ButtonStyle(
+                            shape: MaterialStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(100)), side: BorderSide(color: Colors.grey.shade400, width: 1))),
+                            foregroundColor: MaterialStatePropertyAll(Colors.white),
+                            // backgroundColor: MaterialStatePropertyAll(Colors.orangeAccent),
+                          ),
+                          child: Text(
+                            "Submit",
+                            style: CustomTextStyle.boldTextStyle.copyWith(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  createMenuListItemWidget(int position) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedPosition = position;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.only(top: 8, bottom: 8, left: 8, right: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Container(
+              child: Text(listCancelReason[position].title),
+              margin: EdgeInsets.only(left: 12),
+            ),
+            Container(
+              width: 20,
+              height: 20,
+              child: selectedPosition == position
+                  ? Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Colors.white,
+                    )
+                  : Icon(
+                      Icons.circle,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+              decoration: BoxDecoration(color: selectedPosition == position ? Colors.tealAccent.shade400 : Colors.amberAccent, shape: BoxShape.circle),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
